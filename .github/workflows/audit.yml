@@ -47,7 +47,7 @@ jobs:
             After=network.target
   
             [Service]
-            ExecStart=/home/server/app/app -mode=prodaction
+            ExecStart=/home/server/app/app ${{ secrets.LOGIN }} ${{ secrets.PASSWORD }}
             WorkingDirectory=/home/server/app
             User=server
             Group=server

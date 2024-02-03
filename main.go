@@ -31,7 +31,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	r.ParseMultipartForm(10 << 20) // Максимальный размер файла: 10MB
+	r.ParseMultipartForm(100 << 20) // Максимальный размер файла: 10MB
 	file, _, err := r.FormFile("file")
 	if err != nil {
 		fmt.Println("Error Retrieving the File")
@@ -40,7 +40,6 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Генерируем случайное имя файла из 5 символов
 	randomFileName := generateRandomFileName()
 	filePath := fmt.Sprintf("./dump/%s.%v", randomFileName, "zip")
 
@@ -86,7 +85,23 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, filePath)
 }
 
+func basicAuth(handler http.HandlerFunc, username, password string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+	 user, pass, ok := r.BasicAuth()
+ 
+	 if !ok || user != username || pass != password {
+		w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	 }
+	 handler(w, r)
+	}
+ }
+
 func main() {
+
+	username := os.Args[1]
+	password := os.Args[2]
 
 	if _, err := os.Stat("./dump"); os.IsNotExist(err) {
 		err := os.Mkdir("./dump", 0755)
@@ -96,7 +111,7 @@ func main() {
 	}
 
 	http.HandleFunc("/upload", uploadFile)
-	http.HandleFunc("/dumps", listFiles)
+	http.HandleFunc("/list", basicAuth(listFiles, username, password))
 	http.HandleFunc("/download/", downloadFile)
 	err := http.ListenAndServe(":18300", nil)
 	if err != nil {
