@@ -1,0 +1,65 @@
+name: CI/CD Golang
+
+on:
+  push:
+    branches: 
+      - server
+
+jobs:
+  deploying:
+    name: Server Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.21.3
+
+      - name: Disable CGO
+        run: go env -w CGO_ENABLED=0
+
+      - name: Build Go application
+        run: go build -o app main.go
+
+      - name: Send app to server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          username: root
+          host: ${{ secrets.HOST }}
+          key: ${{ secrets.SECRET }}
+          port: 22
+          source: "app,config.ini"
+          target: /home/server/app
+
+      - name: Create app.service and enable autostart
+        uses: appleboy/ssh-action@master
+        with:
+          username: root
+          host: ${{ secrets.HOST }}
+          key: ${{ secrets.SECRET }}
+          port: 22
+          script: |
+            echo "[Unit]
+            Description=My Go Application
+            After=network.target
+  
+            [Service]
+            ExecStart=/home/server/app/app -mode=prodaction
+            WorkingDirectory=/home/server/app
+            User=server
+            Group=server
+            TimeoutStartSec=0
+            Restart=always
+            RestartSec=5s
+              
+            [Install]
+            WantedBy=multi-user.target" | sudo tee /etc/systemd/system/app.service
+
+            systemctl daemon-reload
+            systemctl stop app.service
+            systemctl disable app.service
+            systemctl enable app.service
+            systemctl start app.service

