@@ -112,7 +112,7 @@ func main() {
 
 	http.HandleFunc("/upload", uploadFile)
 	http.HandleFunc("/list", basicAuth(listFiles, username, password))
-	http.HandleFunc("/download/", downloadFile)
+	http.HandleFunc("/download/", basicAuth(downloadFile, username, password))
 	err := http.ListenAndServe(":18300", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
