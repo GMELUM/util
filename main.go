@@ -21,6 +21,16 @@ func generateRandomFileName() string {
 }
 
 func uploadFile(w http.ResponseWriter, r *http.Request) {
+
+	if _, err := os.Stat("./dump"); os.IsNotExist(err) {
+		err := os.Mkdir("./dump", 0755)
+		if err != nil {
+			fmt.Println(err)
+			http.Error(w, "Failed to create dump directory", http.StatusInternalServerError)
+			return
+		}
+	}
+
 	r.ParseMultipartForm(10 << 20) // Максимальный размер файла: 10MB
 	file, _, err := r.FormFile("file")
 	if err != nil {
@@ -77,6 +87,14 @@ func downloadFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+
+	if _, err := os.Stat("./dump"); os.IsNotExist(err) {
+		err := os.Mkdir("./dump", 0755)
+		if err != nil {
+			log.Fatal("Failed to create dump directory: ", err)
+		}
+	}
+
 	http.HandleFunc("/upload", uploadFile)
 	http.HandleFunc("/dumps", listFiles)
 	http.HandleFunc("/download/", downloadFile)
