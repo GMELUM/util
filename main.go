@@ -84,7 +84,40 @@ func listFiles(w http.ResponseWriter, r *http.Request) {
 		</script>`,
 	)
 
-	fmt.Fprintf(w, "<div style='display: flex;align-items: center;justify-content: flex-start;flex-direction: row;flex-wrap: wrap;font-family: -apple-system, system-ui, Helvetica Neue, Roboto, sans-serif;'>")
+	fmt.Fprint(w, `
+	<script>
+		function handleFileDrop(event) {
+			event.preventDefault();
+			var fileList = event.dataTransfer.files;
+			uploadFiles(fileList);
+		}
+
+		function uploadFiles(fileList) {
+			var formData = new FormData();
+			for (var i = 0; i < fileList.length; i++) {
+				formData.append('file', fileList[i]);
+			}
+
+			fetch('/upload', {
+				method: 'POST',
+				body: formData
+			})
+			.then(response => {
+				if (response.ok) {
+					location.reload(); // Перезагрузка страницы после успешной загрузки файла
+				} else {
+					alert('Не удалось загрузить файл(ы)');
+				}
+			})
+			.catch(error => {
+				console.error('Ошибка:', error);
+			});
+		}
+	</script>
+`,
+	)
+
+	fmt.Fprintf(w, "<div style='display: flex;max-width: 848px;min-width: 216px;align-items: center;justify-content: flex-start;flex-direction: row;flex-wrap: wrap;font-family: -apple-system, system-ui, Helvetica Neue, Roboto, sans-serif;margin: 0 auto;'>")
 	for _, file := range files {
 		fileName := file.Name()
 		filePath := fmt.Sprintf("/download/%s", fileName)
@@ -119,6 +152,14 @@ func listFiles(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "</div>")
 
 	}
+
+	fmt.Fprintf(w, `
+		<div id="fileDropArea" style="display: flex;width: 200px;height: 349px;background: #e9e9e9;font-size: 50pt;font-weight: 600;border-radius: 12px;flex-direction: column;flex-wrap: nowrap;align-items: center;margin: 6px;overflow: hidden;justify-content: center;color: #bdbdbd;"
+			ondrop="handleFileDrop(event)" ondragover="event.preventDefault()">
+				+
+		</div>
+	`)
+
 	fmt.Fprintf(w, "</div>")
 }
 
