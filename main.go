@@ -93,7 +93,7 @@ func listFiles(w http.ResponseWriter, r *http.Request) {
 		fileSizeMB := float64(fileSizeBytes) / (1024 * 1024)
 		fileModTime := fileStat.ModTime().Format("02.01.2006 15:04")
 
-		fmt.Fprintf(w, "<div style='display: flex;width: 200px;height: 369px;background: #e9e9e9;font-size: 14pt;font-weight: 600;border-radius: 12px;flex-direction: column;flex-wrap: nowrap;align-items: center;margin: 6px;overflow: hidden;'>")
+		fmt.Fprintf(w, "<div style='display: flex;width: 200px;height: 349px;background: #e9e9e9;font-size: 14pt;font-weight: 600;border-radius: 12px;flex-direction: column;flex-wrap: nowrap;align-items: center;margin: 6px;overflow: hidden;'>")
 
 		fmt.Fprint(w, "<div style='width: 200px;height: 200px; background: #878787;'>")
 		fileExt := filepath.Ext(fileName)
@@ -106,13 +106,13 @@ func listFiles(w http.ResponseWriter, r *http.Request) {
 
 		fmt.Fprint(w, "<div style='display: flex;height: 20px;width: 100%;'>")
 		fmt.Fprintf(w, "<p style='flex: 1 1;height: 20px;font-size: 11pt;margin: 0;display: block;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;padding: 0 8px 0 0;'>%s</p>", fileName)
-		fmt.Fprintf(w, "<p style='font-size: 11pt;text-align: end;box-sizing: border-box;margin: 0;'>%.2f MB</p>", fileSizeMB)
+		fmt.Fprintf(w, "<p style='font-size: 10pt;text-align: end;box-sizing: border-box;margin: 0;color: #919191;line-height: 18px;font-weight: 600;'>%.2fmb</p>", fileSizeMB)
 		fmt.Fprintf(w, "</div>")
 
 		fmt.Fprintf(w, "<p style='font-size: 10pt;font-weight: 500;color: #858585;margin: 2px 0;width: 169px;text-align: end;'>%s</p>", fileModTime)
 		fmt.Fprintf(w, "<a href=\"%s\" download=\"%s\"><button style='width: 169px;height: 36px;margin: 12px  0 8px 0;border-radius: 12px;border: none;background: #878787;font-weight: 600;color: white;cursor: pointer;'>Скачать</button></a>", filePath, fileName)
 
-		fmt.Fprintf(w, "<button onclick=\"deleteAndReload('%s')\" style='width: 80px;height: 28px;border-radius: 12px;background: #252525;cursor: pointer;color: white;font-weight: 600;border: none;margin: 0 0 12px 0;'>Удалить</button>", fileName)
+		fmt.Fprintf(w, "<button onclick=\"deleteAndReload('%s')\" style='width: 80px;height: 28px;border-radius: 12px;background: #252525;cursor: pointer;color: white;font-weight: 600;border: none;'>Удалить</button>", fileName)
 
 		fmt.Fprintf(w, "</div>")
 
